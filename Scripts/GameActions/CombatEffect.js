@@ -18,8 +18,8 @@ var operator = cc.Enum({
 cc.Class({
     properties: {
         name : "BaseEffect",
-        icon : cc.Sprite,
-        sound:{
+        Icon : cc.Sprite,
+        Sound:{
             default: null,
             type: cc.AudioClip
         },
@@ -28,31 +28,27 @@ cc.Class({
             type : cc.Integer
         },
         attributeTargeted:"healthPoints",
-        baseAttribute:"attackPoints",
-        sourceAttribute:"Self",
-        attributeMagnitude : 1.5,
-        preFlatAddition:0,
-        postFlatAddition:0,
+        baseAttributeCalculation:"attackPoints",
+        sourceAttributeCalculation:"Self",
+        coeffAttributeCalculation : 1.5,
+        preCalculationAddition:0,
+        postCalculationAddition:0,
         typeOfCalculation:operator.add ,
-        isPermanent:true ,
-        initiaterIndex : null,
-        targetIndex : null,
-        finalMagnitude:null,
-        description:'effect',
+        target : "Ennemy",
         requirement:{
             default:[],
             type : cc.String,
         },
-        goal : "TargetDead",
+        consequence : "TargetDead",
         Tags:{
             default : [],
             type : cc.String,
         },
-        tagsRequireds:{
+        sourceTags:{
             default : [],
             type : cc.String,
         },
-        tagsApplieds:{
+        targetTags:{
             default : [],
             type : cc.String,
         },
