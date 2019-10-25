@@ -8,28 +8,23 @@
 //  - [Chinese] http://docs.cocos.com/creator/manual/zh/scripting/life-cycle-callbacks.html
 //  - [English] http://www.cocos2d-x.org/docs/creator/en/scripting/life-cycle-callbacks.html
 
-var sc = this ;
+
+var questLogs = [];
+var pagesHolder = new cc.Object() ;
 
 cc.Class({
     extends: cc.Component,
 
     properties: {
 
-        ChoicePrefab : cc.Prefab, //the type of button to display
-        pageContainer :cc.Node, //the node containing the actions possibles
-        _ActionsButtons : null ,
-        _PlayerInfo : cc.node,
-        TextDisplay : cc.Label, //the ui node where the text will generally appear
-        _TextParagraphes : cc.string, //the text itself
-        BackgroundImage : cc.Node, //the principale image
-        pagePrefab : cc.Prefab ,
-        _pagesPool : cc.NodePool ,
-        _pages : null ,
-        currentPage : cc.node ,
-        testQuest : cc.JsonAsset ,
+        ButtonPrefab : cc.Prefab, //the type of button to display
+        pagesDisplay :cc.Node, //the node containing the instantiated pages ;
+        
+        PagePrefab : cc.Prefab ,
+        currentPage : cc.Node ,
+        TestQuest : cc.JsonAsset , //
         GameActionDatabase : cc.JsonAsset,
-        logText : cc.string ,
-        popupText : cc.Prefab ,
+        PopupText : cc.Prefab ,
         
 
         // foo: {
@@ -54,7 +49,7 @@ cc.Class({
     onLoad () {
         this.ButtonPool = new cc.NodePool();
         let initcount = 10 ;
-        this.popupText = cc.instantiate(this.popupText) ;
+        this.PopupText = cc.instantiate(this.PopupText) ;
         for (let i = 0 ; i < initcount ; i++) //instentiate initial pool
         {
             let button = cc.instantiate(this.ActionButton);
@@ -66,20 +61,20 @@ cc.Class({
     },
 
     start () {
-        for(let action in this.testQuest.json.Paragraphs){
-            cc.log('Json ?',action);
-        }
-        this.LoadQuest(this.testQuest.json);
+        if(this.TestQuest){this.LoadQuest(this.TestQuest.json);}
+        else{cc.warn('json quest file not loaded')}
+        
     },
 
     LoadQuest(Quest){ //load all the possibles pages from a quest object
         cc.log("loading quest " , Quest.id);
-        this._pages = new cc.Object() ;
+        pagesHolder = new cc.Object() ;
 
-        for(let paragraph of Quest.Paragraphs) //for each paragraph of the quest create a corresponding page Node
+        for(let paragraph of Quest.Paragraphs) //for each paragraph of the quest create a corresponding page object
         {
             this.SetPage(paragraph);
         }
+
         //create the presentation page
         var firstChoice = {
             depthNumber : 0,
@@ -106,168 +101,179 @@ cc.Class({
 
         this.currentPage = this.SetPage(firstParagraph);
         this.currentPage.displayNode.active = true ;
+        cc.log('first page ', this.currentPage.index);
+    },
+
+    UnloadQuest(){
+        pagesHolder = null;
+        this.currentPage = null;
+
     },
 
     SetPage(paragraph){
+        //this function create an usable 'page' object from a given paragraph.
+
+        //initialize the page object
         var page = {
-            id : paragraph.depthNumber.toString() +'-'+ paragraph.paragraphNumber.toString(),
+            index : paragraph.depthNumber.toString() +'-'+ paragraph.paragraphNumber.toString(),
             title : paragraph.Title,
-            displayNode : cc.instantiate(this.pagePrefab),//instantiate a page node from prefab
+            displayNode : cc.instantiate(this.PagePrefab),//instantiate a page prefab, it's what will appear on screen
             inputText : paragraph.inputText,
             type : paragraph.paragraphType,
-            subtype : paragraph.paragraphSubTypes,
+            subtypes : paragraph.paragraphSubTypes,
             choices : paragraph.nextParagraphs ,
             currentChoices : [],
-            backgroundImage : paragraph.backgroundImageURL,
+            backgroundImage : paragraph.backgroundImageURLonIPFS,
             selectedMonster : paragraph.selectedMonster,
             currentMonsters : [],
         } ;
 
+        if(page.subtypes.isEliteMobCombat){};
+        if(page.subtypes.isFinalBossCombat){};
+        if(page.subtypes.isMobCombat){};
+        if(page.subtypes.isSuddenDeath){
+
+        };
+        if(page.subtypes.isTextualPath){};
+        if(page.subtypes.isTextualRiddle){};
+        if(page.subtypes.isVictory){};
+        if(page.subtypes.isPointAndClickPath){};
+
+        //add the page to the container node
+        this.pagesDisplay.addChild(page.displayNode) ; 
+        page.displayNode.active = false ;
+
+        //set the text in the page nodes
+        page.displayNode.getChildByName('TextDisplay').getComponent(cc.Label).string = paragraph.inputText ; 
+        page.displayNode.getChildByName('TitleDisplay').getComponent(cc.Label).string =  page.index ;
+
         for(let choice of page.choices)
         {
-            choice.type = page.type;
+
+            if(choice.hasOwnProperty('depthNumber'))
+            {
+                choice.nextIndex = choice.depthNumber.toString() +'-'+ choice.paragraphNumber.toString()
+                choice.name = choice.nextIndex;
+                choice.type = 'GoToPage';
+            }  
         };
 
+        //create the paragraph fighters if they exists
+        if(typeof page.selectedMonster !== 'undefined'){
+            cc.log(page.selectedMonster,' selected monster');
+            this.node.getComponent('Fight_Master').AddFighter(page,page.selectedMonster )
+        };
 
-        if(page.backgroundImage){
-            cc.log( 'loading texture ',page.backgroundImage );/*è
-
-            var tex = new cc.Texture2D ;
-            var img = new Image();
-            img.src = page.backgroundImage;
-            tex.initWithElement(img);
-            cc.log('image? ' , img );
-            page.displayNode.getChildByName('Background').getComponent(cc.Sprite).spriteFrame = new cc.SpriteFrame(img);
-            cc.loader.load({url:page.backgroundImage}, function (err, texture) {
+        //load the background image
+        if(page.backgroundImage!== null){
+            cc.log( 'loading texture ',page.backgroundImage );
+            cc.loader.load({url:page.backgroundImage,type:'png'}, function (err, texture) {
                 if(err){
-                    cc.log('texture not loading for ',page.id,' : ',err.message);
+                    cc.log('texture not loading for ',page.index,' : ',err.message);
                 };
-                cc.log('image ?',texture);
-                if(texture){page.displayNode.getChildByName('Background').getComponent(cc.Sprite).spriteFrame = new cc.SpriteFrame(texture);};
-                
-                
+                if(texture){page.displayNode.getChildByName('ImageDisplay').getComponent(cc.Sprite).spriteFrame = new cc.SpriteFrame(texture);};
                 // Use texture to create sprite frame
-            });*/
-            
+            });
+            //page.displayNode.getChildByName('Background').getComponent(cc.Sprite).spriteFrame = new cc.SpriteFrame(texture);
         }
-        page.displayNode.getChildByName('TextDisplay').getComponent(cc.Label).string = paragraph.inputText ; //copy the paragraph text to the page node
-        page.displayNode.getChildByName('TitleDisplay').getComponent(cc.Label).string =  page.id ;
-        this.node.getChildByName('PageContainer').addChild(page.displayNode) ; //add the page to the container node
-        page.displayNode.active = false ;
-/*
-        if(page.subtype.isSuddenDeath || page.subtype.isVictory){ //add a retry button when game over
-            page.choices.push({
-                depthNumber : 0,
-                paragraphNumber : 0,
-            })
-        };*/
 
+        
+
+        //if there is specifics things to set given the type of paragraph
+        cc.log('setting page : ',page.index,' ',page.type);
         switch(paragraph.paragraphType){
             case 'dialogue':
                 break ;
             case 'narration':
                 break ;
+            case 'path':
+                break ;
             case 'riddle':
                 break ;
             case 'combat':
-                if(page.selectedMonster){this.node.getComponent('Fight_Master').AddFighter(page,page.selectedMonster )};
                 cc.warn('adding monster');
                 break;
         }
 
-        this.SetChoices(page , page.choices); //create the buttons using the "next paragraphs" options
+         
+         
+         //create the buttons/choices the player has to make
+         this.SetChoices(page , page.choices); //create the buttons using the "next paragraphs" options
 
-        //register the created node
-        this._pages[page.id] = page ; //register the page with the key as attribute for easy access
+        //register the created page
+        pagesHolder[page.index] = page ; //register the page with the key as attribute for easy access*/
         return page ;
     },
 
-    SetChoices(page ,choiceList) //take a list of choice for a given page and create buttons to execute them
+    SetChoices(page ,choiceList) //take a list of choice for a given page and create buttons to execute them. this is the main function for buton logic
     {
         var choicesLayout = page.displayNode.getChildByName('ChoicesLayout'); 
-        cc.log('titi ',choiceList);
+        var imageDisplay = page.displayNode.getChildByName('ImageDisplay'); 
+        
         //remove all the previous choices for the selected page
-        for (let i = 0 ; i < choicesLayout.children.length;i++){
-            cc.log('destroying ',choicesLayout.children[i]);
-            choicesLayout.children[i].destroy();
+        for(let i = 0; i < page.currentChoices.length; i++){page.currentChoices[i].displayNode.destroy();}
+        page.currentChoices = [];
+        
+        //create the choices button
+        for (let choice of choiceList)
+        {
+            //create node button from template
+            cc.log('setting choice ',choice,choice.type,' for page ',page.index);
+            choice.displayNode = cc.instantiate(this.ButtonPrefab);
+            if(choice.hasOwnProperty('top')){imageDisplay.addChild(choice.displayNode)} //
+            else{choicesLayout.addChild(choice.displayNode)};
+            choice.displayNode.getComponent('ButtonScript').SetButton(choice);
+            choice.displayNode.active = true;   
+            page.currentChoices.push(choice) ; //for now there is no identifiant for choie player make
         }
         
-        for (let choice of choiceList)
-            {
-                cc.log('setting choice ',choice,choice.type,' for page ',page.id);
-                var choicebutton = cc.instantiate(this.ChoicePrefab); //create node button from template
-                switch(choice.type){
-                    case 'dialogue':
-                        choicesLayout.addChild(choicebutton) ; //add it to the paragraph layout
-                        choicebutton.getComponent('ButtonScript').SetEvent(choice);
-                        choicebutton.getChildByName("Label").getComponent(cc.Label).string = choice.depthNumber + '-' + choice.paragraphNumber; //wright the paragraph on the button, remove this later
-                        choicebutton.active = true;
-                        break ;
-                    case 'narration':
-                        choicesLayout.addChild(choicebutton) ; //add it to the paragraph layout
-                        choicebutton.getComponent('ButtonScript').SetEvent(choice);
-                        choicebutton.getChildByName("Label").getComponent(cc.Label).string = choice.depthNumber + '-' + choice.paragraphNumber; //wright the paragraph on the button, remove this later
-                        choicebutton.active = true;
-                        break ;
-                    case 'riddle':
-                        choicesLayout.addChild(choicebutton) ; //add it to the paragraph layout
-                        choicebutton.getComponent('ButtonScript').SetEvent(choice);
-                        choicebutton.getChildByName("Label").getComponent(cc.Label).string = choice.depthNumber + '-' + choice.paragraphNumber; //wright the paragraph on the button, remove this later
-                        choicebutton.active = true;
-                        //choicebutton.setPosition(choice.selectedPointer.top , choice.selectedPointer.left);
-                        break ;
-                    case 'combat':
-                        choicesLayout.addChild(choicebutton) ; //add it to the paragraph layout
-                        choicebutton.getComponent('ButtonScript').SetEvent(choice);
-                        choicebutton.getChildByName("Label").getComponent(cc.Label).string = choice.depthNumber + '-' + choice.paragraphNumber; //wright the paragraph on the button, remove this later
-                        choicebutton.active = true;
-                        break;
-                    case 'action':
-                        choicesLayout.addChild(choicebutton) ; //add it to the paragraph layout
-                        choicebutton.getComponent('ButtonScript').SetEvent(choice);
-                        choicebutton.getChildByName("Label").getComponent(cc.Label).string = choice.name; //wright the paragraph on the button, remove this later
-                        choicebutton.active = true;
-                        break;
-                }
-                
-                
-                
-                
-            }
+    },
+
+    AddChoice(page, choice){
+        var choicesLayout = page.displayNode.getChildByName('ChoicesLayout'); 
+        var choicebutton = cc.instantiate(this.ButtonPrefab); //create node button from template
+        choicesLayout.addChild(choicebutton) ; //add it to the paragraph layout
+        choicebutton.getComponent('ButtonScript').SetButton(choice);
     },
 
     SetText(page,text){
         page.displayNode.getChildByName('TextDisplay').getComponent(cc.Label).string = text ;
     },
 
-    AddChoice(page, choice){
-        var choicesLayout = page.displayNode.getChildByName('ChoicesLayout'); 
-        var choicebutton = cc.instantiate(this.ChoicePrefab); //create node button from template
-        choicesLayout.addChild(choicebutton) ; //add it to the paragraph layout
-        var nextid = choice.depthNumber+'-'+choice.paragraphNumber ;
-        choicebutton.getComponent('ButtonScript').SetEvent(clickevent);
-        choicebutton.getChildByName("Label").getComponent(cc.Label).string = nextid;
-    },
+    
 
     GoToPage(newPageName) //change the current displayed page
     {
-        cc.log("going to paragraph ",newPageName);
-        cc.log("old paragraph ",this.currentPage.id);
-        this.currentPage.displayNode.active = false ; //hide the current page before getting to the new one
-        cc.log("new paragraph ",this._pages[newPageName].id);
-        this.currentPage = this._pages[newPageName]; //register new page as current one
-        this.currentPage.displayNode.active = true ; //show the newpage
+        cc.log("going to paragraph ",newPageName);       
+        cc.log("old paragraph ",this.currentPage.index);
 
-        //triggers relative to the event happneing on the new page
-        switch(this._pages[newPageName].type){
+        if(pagesHolder.hasOwnProperty(newPageName)){
+            this.currentPage.displayNode.active = false ; //hide the current page before getting to the new one
+            cc.log("new paragraph ",pagesHolder[newPageName].nextIndex);
+            this.currentPage = pagesHolder[newPageName]; //register new page as current one
+            this.currentPage.displayNode.active = true ; //show the newpage
+
+            var log = {
+                type : pagesHolder[newPageName].type,
+                text : pagesHolder[newPageName].inputText
+            }
+        questLogs.push(log);
+
+        }
+        
+
+        //triggers relative to the event happening on the new page
+        switch(pagesHolder[newPageName].type){
             case 'dialogue':
                 break ;
             case 'narration':
                 break ;
+            case 'type':
+                break ;
             case 'riddle':
                 break ;
             case 'combat':
-                this.getComponent('Fight_Master').SetFight(this._pages[newPageName]);
+                this.getComponent('Fight_Master').SetPageFight(pagesHolder[newPageName]);
                 break ;
         }
         
@@ -276,24 +282,28 @@ cc.Class({
     },
 
     ReceiveChoiceEvent(event){ //triggered for all sorts of events
-        cc.log("event ? ",event.type ,event.detail.type);
+        cc.log("receiving event ? ",event.type ,event.detail.type);
         switch(event.detail.type){
             case 'GoToPage':
-                this.GoToPage(event.detail.id);
+                this.GoToPage(event.detail.nextIndex);
                 break;
             case 'action':cc.log('action event');
                 break;
+            case 'Reload':
+                this.UnloadQuest();
+                this.LoadQuest(this.TestQuest.json);
+                break;
+
         }
 
-        
     },
 
     ReceiveEffectEvent(event){
         cc.log('displaying event ',event.target);
-        var textAnim = this.popupText.getComponent(cc.Animation);
+        var textAnim = this.PopupText.getComponent(cc.Animation);
         textAnim.play().repeatCount = 1;
-        this.popupText.parent = this.node;
-        this.popupText.getComponent(cc.Label).string =  ' '+ event.detail.attributeTargeted + ' : ' + event.detail.finalMagnitude ;
+        this.PopupText.parent = this.node;
+        this.PopupText.getComponent(cc.Label).string =  ' '+ event.detail.attributeTargeted + ' : ' + event.detail.finalMagnitude ;
         cc.log(textAnim,' text anim ?')
         var effectAnim = event.target.getComponent(cc.Animation);
         effectAnim.play().repeatCount = 4;

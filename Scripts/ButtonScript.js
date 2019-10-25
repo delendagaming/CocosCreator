@@ -7,14 +7,16 @@
 // Learn life-cycle callbacks:
 //  - [Chinese] http://docs.cocos.com/creator/manual/zh/scripting/life-cycle-callbacks.html
 //  - [English] http://www.cocos2d-x.org/docs/creator/en/scripting/life-cycle-callbacks.html
+var UiScript = null ;
 
 cc.Class({
     extends: cc.Component,
 
     properties: {
         
-        choiceEvent : cc.Event.EventCustom,
-        eventType : 'Choice',
+        dataEvent : cc.Event.EventCustom,
+        eventType : 'choice',
+        owner : null ,
         // foo: {
         //     // ATTRIBUTES:
         //     default: null,        // The default value will be used only when the component attaching
@@ -39,46 +41,41 @@ cc.Class({
     start () {
     },
 
-    Choice(event , customEventData){
-        cc.log('choice script test') ;
-        this.node.dispatchEvent(this.choiceEvent,true);
+    Validated(event , customEventData){
+        cc.log('click');
+        this.node.dispatchEvent(this.dataEvent,true);
     },
-    SetEvent(choice)
+    SetButton(data)
     {
-        cc.log('setting event ',choice.type);
+        cc.log('setting button event : ',data.type);
         var detail = new cc.Object();
         detail.owner = 'player' ;
-        switch(choice.type){
-            case 'dialogue':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type = 'GoToPage';
-                cc.log('event dialogue ?',detail.type);
-                break ;
-            case 'narration':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type =  'GoToPage';
-                break ;
-            case 'riddle':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type =  'GoToPage';
-                break ;
-            case 'path':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type =  'GoToPage';
-                break ;
-            case 'combat':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type =  'GoToPage';
-                break;
-            case 'action': cc.log('combat action ?'); 
-                detail.id = choice.name;
-                detail.type =  choice.type;
-                this.node.children[0].getComponent(cc.Label).string = detail.id;
-                break;
-        }
+        if(data.hasOwnProperty('name')){
+            this.node.getChildByName('Label').getComponent(cc.Label).string = data.name ;
+        };
+        if(data.hasOwnProperty('nextIndex')){
+            detail.nextIndex = data.nextIndex ;
+        };
+        if(data.hasOwnProperty('action')){
+            this.node.children[0].getComponent(cc.Label).string = data.action;
+            detail.action = data.action ;
+        };
+        if(data.hasOwnProperty('owner')){
+            this.owner = data.owner ;
+            detail.owner = data.owner ;
+        };
+        if(data.hasOwnProperty('type')){
+            detail.type = data.type ;
+        };
+        if(data.hasOwnProperty('imageURL')){
+        };
+        if(data.hasOwnProperty('top')){
+            this.node.setPosition(data.left,data.top);
+        };
+
         cc.log('setting event detail ',detail.type);
-        this.choiceEvent = new cc.Event.EventCustom("Choice" , true);
-        this.choiceEvent.detail = detail ;
+        this.dataEvent = new cc.Event.EventCustom("Choice" , true);
+        this.dataEvent.detail = detail ;
     }
     // update (dt) {},
 });

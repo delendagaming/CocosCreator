@@ -10,6 +10,7 @@ cc.Class({
         ,UIMaster: cc.Node
         ,parametersFile : cc.loader.TextAsset 
         ,activesFighters : []
+        ,isVictory : false
         ,alivesFighters : 0
         ,currentTurn : 0
         ,currentPlayer : null
@@ -29,15 +30,16 @@ cc.Class({
         this.node.on("TurnEvent",this.TurnEnded,this) ;
         this.node.on("Destroyed",this.RemoveFighter,this) ;
         this.node.on("Choice",this.ReceiveChoiceEvent,this);
-        this.AddPlayer();
+        
     },
 
     start () {
         this.UIMaster = cc.find("Canvas").getComponent("UI_Master");
     }
 
-    ,SetFight(page) //register the fighters from the given page
+    ,SetPageFight(page) //register the fighters from the given page
     {
+        this.AddPlayer();
         let index = 0 ; //index is the fighter position in currentMonsters array
         cc.log('setting fight');
         this.activesFighters.push(this.currentPlayer); //the player scirpt is registered first
@@ -50,6 +52,17 @@ cc.Class({
         this.alivesFighters = index + 1;
         //this.SetTurns();
         this.BeginRound();
+    },
+
+    CleanUp(){
+        this.currentPage = null ;
+        this.currentPlayer = null;
+        this.currentMonsters = null ;
+        this.currentTurn = null ;
+        this.activesFighters = [];
+        this.turnOrder=[];
+        this.activesEffects = [];
+        this.isVictory = false;
     },
 
     EndFight(isVictory){
@@ -75,6 +88,7 @@ cc.Class({
         }
         this.activesEffects = nextEffectArray ;
         cc.log('checking for survivors');
+
         //for now the victory condition is just last man standing
         if(this.alivesFighters <2){
             let isVictory = false ;
@@ -126,15 +140,14 @@ cc.Class({
     AddFighter(page ,template)
     {
         //add a fighter to a page, completely independant of combat
-        cc.log("adding fighter to ",page.id);
+        cc.log("adding fighter to ",page.index);
         
         let fighter = cc.instantiate(this.FighterPrefab);
-        page.displayNode.getChildByName('Background').addChild(fighter);
-        cc.log('pos ',template.top,template.left)
+        page.displayNode.getChildByName('ImageDisplay').addChild(fighter);
         fighter.setPosition(template.top , template.left);
         page.currentMonsters.push(fighter);
         this.InitFighter(fighter.getComponent('FighterScript'),template.characteristics);
-        fighter.currentPage = page.id ;
+        fighter.currentPage = page.index ;
         return fighter;
     },
 
@@ -174,10 +187,10 @@ cc.Class({
             cc.log(attribute ,' : ',fighterScript.characteristics[attribute]);
         };
         cc.log('itialising json actions',fighterScript.jsonActions);
-        for(var test in fighterScript.jsonActions.json)
+        for(var action in fighterScript.jsonActions.json)
         {
-            fighterScript.possiblesActions.push(fighterScript.jsonActions.json[test]);
-            cc.log(fighterScript.jsonActions.json[test].name ,' initialized');
+            fighterScript.possiblesActions.push(fighterScript.jsonActions.json[action]);
+            cc.log(fighterScript.jsonActions.json[action].name ,' initialized');
         }
         cc.log(fighterScript.characteristics.name ,' initialized');
         return fighterScript ;
@@ -197,9 +210,11 @@ cc.Class({
 
     ReceiveChoiceEvent(event) //trigger when the player click on an action button
     {
-        if((event.detail.type == 'action') && this.isWaitingPlayerChoice ){
+        cc.log(this.name,' received choice event ',event.detail.hasOwnProperty('action'));
+        if((event.detail.hasOwnProperty('action')) && this.isWaitingPlayerChoice ){
+            cc.log('action');
             this.isWaitingPlayerChoice = false ;
-            this.ExecuteAction(this.currentPlayer.index,event.detail.id,1);
+            this.ExecuteAction(this.currentPlayer.index,event.detail.action,1);
         }
     },
 
