@@ -41,14 +41,7 @@ cc.Class({
 
     },
 
-
-    GoToScene(event, customEventData)
-    {
-        cc.log(event);
-        cc.director.loadScene(customEventData);
-    }
-
-    ,LoadFromMenu()
+    LoadFromMenu()
     {
         let SceneName = this.SceneNameNode.string;
         if(SceneName){

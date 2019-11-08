@@ -7,14 +7,20 @@
 // Learn life-cycle callbacks:
 //  - [Chinese] http://docs.cocos.com/creator/manual/zh/scripting/life-cycle-callbacks.html
 //  - [English] http://www.cocos2d-x.org/docs/creator/en/scripting/life-cycle-callbacks.html
+var UIScript = null ;
 
 cc.Class({
     extends: cc.Component,
 
     properties: {
         
-        choiceEvent : cc.Event.EventCustom,
+        dataEvent : cc.Event.EventCustom,
         eventType : 'Choice',
+        owner : null ,
+        audio:{
+            default : null,
+            type : cc.AudioClip,
+        },
         // foo: {
         //     // ATTRIBUTES:
         //     default: null,        // The default value will be used only when the component attaching
@@ -34,51 +40,100 @@ cc.Class({
 
     // LIFE-CYCLE CALLBACKS:
 
-    // onLoad () {},
+     onLoad () {
+        UIScript = cc.find('Canvas').getComponent('UI_Master');
+        cc.log('ui script found ? ', UIScript);
+     },
 
     start () {
     },
 
-    Choice(event , customEventData){
-        cc.log('choice script test') ;
-        this.node.dispatchEvent(this.choiceEvent,true);
+    DispatchChoice(event , customEventData){
+        cc.log('click');
+        this.current = cc.audioEngine.play(this.audio, false, 1);
+        this.node.dispatchEvent(this.dataEvent,true);
     },
-    SetEvent(choice)
+
+    Validated(event , customEventData){
+        UIScript.ShowMenu(customEventData);
+    },
+    
+    SetButton(data)
     {
-        cc.log('setting event ',choice.type);
+        cc.log(this.node ,' setting button event : ',data.type);
         var detail = new cc.Object();
         detail.owner = 'player' ;
-        switch(choice.type){
-            case 'dialogue':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type = 'GoToPage';
-                cc.log('event dialogue ?',detail.type);
-                break ;
-            case 'narration':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type =  'GoToPage';
-                break ;
-            case 'riddle':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type =  'GoToPage';
-                break ;
-            case 'path':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type =  'GoToPage';
-                break ;
-            case 'combat':
-                detail.id = choice.depthNumber +'-'+ choice.paragraphNumber;
-                detail.type =  'GoToPage';
-                break;
-            case 'action': cc.log('combat action ?'); 
-                detail.id = choice.name;
-                detail.type =  choice.type;
-                this.node.children[0].getComponent(cc.Label).string = detail.id;
-                break;
-        }
+        if(data.hasOwnProperty('name')){
+            this.name = data.name;
+        };
+        if(data.hasOwnProperty('text')){
+            this.node.getChildByName('Label').getComponent(cc.Label).string = data.text ;
+        };
+        if(data.hasOwnProperty('outcomeText')){
+            this.node.getChildByName('Label').getComponent(cc.Label).string = data.outcomeText ;
+        };
+        cc.log('button script 1');
+        
+        if(data.hasOwnProperty('outcomeImageURLonIPFS')){
+            var n = this.node ;
+            cc.loader.load({url:data.outcomeImageURLonIPFS,type:'png'}, function (err, texture) {
+                if(err){
+                    cc.log('button texture failed to load');
+                };
+                if(texture){
+                    
+                    let frame = n.getComponent(cc.Sprite);
+                    frame.spriteFrame = new cc.SpriteFrame(texture);
+                    cc.log(frame.spriteFrame.getTexture,' compo? ',n );
+                };
+            });
+        };
+        if(data.hasOwnProperty('outcomeSoundURLonIPFS')){
+            var n = this.node ;
+            cc.loader.load(data.outcomeSoundURLonIPFS,function (err, audio) {
+                if(err){
+                    cc.log('audio not loading : ',err.message);
+                };
+                if(audio){this.audio = audio};
+            });
+        };
+        if(data.hasOwnProperty('sound')){
+            cc.loader.load(data.sound,function (err, audio) {
+                if(err){
+                    cc.log('audio not loading : ',err.message);
+                };
+                if(audio){this.audio = audio};
+            });
+        };
+        if(data.hasOwnProperty('nextIndex')){
+            detail.nextIndex = data.nextIndex ;
+        };
+        if(data.hasOwnProperty('action')){
+            this.node.children[0].getComponent(cc.Label).string = data.action;
+            detail.action = data.action ;
+        };
+        cc.log('button script 2');
+        if(data.hasOwnProperty('owner')){
+            this.owner = data.owner ;
+            detail.owner = data.owner ;
+        };
+        if(data.hasOwnProperty('type')){
+            detail.type = data.type ;
+        };
+        
+        cc.log('button script 3');
+        if(data.hasOwnProperty('selectedPointer')){
+            
+            //not great
+            this.node.parent = this.node.parent.parent.getChildByName('ImageDisplay');
+            
+            this.node.setPosition(data.selectedPointer.left,data.selectedPointer.top);
+            cc.log(this.node.x,' display image ?',this.node.y);
+        };
+
         cc.log('setting event detail ',detail.type);
-        this.choiceEvent = new cc.Event.EventCustom("Choice" , true);
-        this.choiceEvent.detail = detail ;
+        this.dataEvent = new cc.Event.EventCustom(this.eventType , true);
+        this.dataEvent.detail = detail ;
     }
     // update (dt) {},
 });

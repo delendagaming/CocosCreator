@@ -21,7 +21,7 @@ cc.Class({
                 default : new Object(),
             },
             isPlayer:false,
-            currentPage:'none',
+            currentPageIndex:'none',
             UIDisplay : cc.Node,
             target:null,
             team : 2,
@@ -46,8 +46,6 @@ cc.Class({
     },
 
     start () {
-        this._UI_Master = cc.find("Canvas").getComponent("UI_Master") ;
-        this._CombatScript = cc.find("Canvas").getComponent("Fight_Master") ;
     },
 
     update (dt) {
