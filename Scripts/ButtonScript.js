@@ -42,15 +42,19 @@ cc.Class({
 
      onLoad () {
         UIScript = cc.find('Canvas').getComponent('UI_Master');
-        cc.log('ui script found ? ', UIScript);
+        cc.log('button : ui script found ? ', UIScript);
+        this.dataEvent = new cc.Event.EventCustom(this.eventType , true);/*
+        var detail = new cc.Object();
+        detail.type = this.eventType ;
+        //this.dataEvent.detail = detail ;*/
      },
 
     start () {
     },
 
     DispatchChoice(event , customEventData){
-        cc.log('click');
-        this.current = cc.audioEngine.play(this.audio, false, 1);
+        cc.log('click', this.dataEvent);
+        //this.current = cc.audioEngine.play(this.audio, false, 1);
         this.node.dispatchEvent(this.dataEvent,true);
     },
 
@@ -60,7 +64,7 @@ cc.Class({
     
     SetButton(data)
     {
-        cc.log(this.node ,' setting button event : ',data.type);
+        cc.log(this.node.name ,' setting button event : ',data.type);
         var detail = new cc.Object();
         detail.owner = 'player' ;
         if(data.hasOwnProperty('name')){
@@ -108,6 +112,9 @@ cc.Class({
         if(data.hasOwnProperty('nextIndex')){
             detail.nextIndex = data.nextIndex ;
         };
+        if(data.hasOwnProperty('Index')){
+            detail.Index = data.Index ;
+        };
         if(data.hasOwnProperty('action')){
             this.node.children[0].getComponent(cc.Label).string = data.action;
             detail.action = data.action ;
@@ -131,9 +138,10 @@ cc.Class({
             cc.log(this.node.x,' display image ?',this.node.y);
         };
 
-        cc.log('setting event detail ',detail.type);
+        
         this.dataEvent = new cc.Event.EventCustom(this.eventType , true);
         this.dataEvent.detail = detail ;
+        cc.log('setting event detail ',detail.type , this.dataEvent.type);
     }
     // update (dt) {},
 });

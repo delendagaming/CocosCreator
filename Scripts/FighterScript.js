@@ -14,7 +14,7 @@ cc.Class({
     properties: {
             displayName:"Default Fighter",
             fightIndex : {
-                default : null,
+                default : -1,
                 type : cc.Integer
             },
             characteristics:{
@@ -22,6 +22,7 @@ cc.Class({
             },
             isPlayer:false,
             currentPageIndex:'none',
+            displayNode:cc.Node,
             UIDisplay : cc.Node,
             target:null,
             team : 2,
@@ -51,6 +52,21 @@ cc.Class({
     update (dt) {
         //this.Health ++ ;
     },
+
+    init(data){
+        if(arguments !=null){
+
+        }
+        else{
+
+        };
+
+    },
+
+    receiveDamage(damage){
+        
+
+    }
 
     
 });

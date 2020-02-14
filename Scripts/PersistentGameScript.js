@@ -1,3 +1,5 @@
+
+
 // Learn cc.Class:
 //  - [Chinese] http://docs.cocos.com/creator/manual/zh/scripting/class.html
 //  - [English] http://www.cocos2d-x.org/docs/creator/en/scripting/class.html
@@ -8,12 +10,20 @@
 //  - [Chinese] http://docs.cocos.com/creator/manual/zh/scripting/life-cycle-callbacks.html
 //  - [English] http://www.cocos2d-x.org/docs/creator/en/scripting/life-cycle-callbacks.html
 
+var playerClass = require('Player');
+
 cc.Class({
     extends: cc.Component,
 
     properties: {
 
-        SceneNameNode : cc.EditBox
+        SceneNameNode : cc.EditBox,
+        loadedQuests : {
+            type : cc.JsonAsset , 
+            default : [],
+        },
+        currentQuest : null ,
+        player : playerClass ,
         // foo: {
         //     // ATTRIBUTES:
         //     default: null,        // The default value will be used only when the component attaching
@@ -33,21 +43,29 @@ cc.Class({
 
     // LIFE-CYCLE CALLBACKS:
 
-    onLoad () {},
+    onLoad () {
+        
+    },
 
     start () {
         
-        //cc.game.addPersistRootNode(this.node) //set this node as persistent
+        cc.game.addPersistRootNode(this.node) //set this node as persistent
 
     },
 
-    LoadFromMenu()
+    loadFromMenu()
     {
         let SceneName = this.SceneNameNode.string;
         if(SceneName){
               cc.log("loading ",SceneName); 
               cc.director.loadScene(SceneName);
         }
-    }
+    },
     // update (dt) {},
+
+    login(){
+        if(true){
+            cc.director.loadScene('MainMenu');
+        }
+    },
 });
